@@ -5,6 +5,7 @@ AI 小说创作系统 - 主入口文件
 通过 Gradio 搭建现代化 Web 可视化交互界面。
 """
 
+import os
 import gradio as gr
 from data_manager import ContentDataManager
 from agent_client import NovelAgentClient
@@ -20,7 +21,7 @@ class NovelSystemGUI:
         # 实例化数据管理器和 Agent 客户端
         self.data_manager = ContentDataManager()
         self.agent_client = NovelAgentClient()
-        # 界面内维护的对话历史（OpenAI 格式：[{"role": "user/assistant", "content": "..."}]）
+        # 界面内维护的对话历史（Gemini 格式）
         self._chat_history: list = []
         # 展示区累计文本
         self._display_text: str = ""
@@ -41,6 +42,7 @@ class NovelSystemGUI:
 
     def _on_generate(self, api_key, user_instruction, chapter_num, style, word_count, outline_text):
         """点击'开始创作/续写章节'：调用 Agent 生成内容"""
+        # 空值校验
         if not api_key or not api_key.strip():
             return self._display_text, "[系统] 请先在左侧输入 API Key！"
         if not user_instruction or not user_instruction.strip():
@@ -75,9 +77,9 @@ class NovelSystemGUI:
             content=result,
         )
 
-        # 更新对话历史（OpenAI 格式）
-        self._chat_history.append({"role": "user", "content": prompt})
-        self._chat_history.append({"role": "assistant", "content": result})
+        # 更新对话历史（Gemini 格式）
+        self._chat_history.append({"role": "user", "parts": [{"text": prompt}]})
+        self._chat_history.append({"role": "model", "parts": [{"text": result}]})
 
         # 更新展示区
         chapter_header = f"--- 第{chapter_num}章 ---\n"
@@ -88,46 +90,33 @@ class NovelSystemGUI:
 
         return self._display_text, f"[系统] 第{chapter_num}章生成完毕！字数：{len(result)}"
 
-    def _on_save_chapter(self, current_text):
+    def _on_save_chapter(self):
         """点击'保存/导出当前章节'"""
-        # 如果有历史记录，使用历史记录导出
         history = self.data_manager.get_history_queue()
+        if not history:
+            return "[系统] 当前没有可导出的章节内容。"
+
         state = self.data_manager.get_session_state()
         title = state.get("title", "未命名小说")
         outline = state.get("outline", "")
 
-        # 优先使用历史记录，如果历史为空则使用当前文本框内容
-        if history:
-            chapters = {}
-            for entry in history:
-                idx = entry["chapter_index"]
-                chapters[idx] = {
-                    "title": entry["chapter_title"],
-                    "content": entry["content"],
-                }
-            story = {
-                "title": title,
-                "outline": outline,
-                "chapters": chapters,
+        # 组装 story 字典
+        chapters = {}
+        for entry in history:
+            idx = entry["chapter_index"]
+            chapters[idx] = {
+                "title": entry["chapter_title"],
+                "content": entry["content"],
             }
-            filepath = export_novel(story)
-            return f"[系统] 章节已成功保存至 output 文件夹！路径：{filepath}"
-        elif current_text and current_text.strip():
-            # 没有历史记录时，直接导出当前文本框内容
-            story = {
-                "title": title,
-                "outline": outline,
-                "chapters": {
-                    "1": {
-                        "title": "手动输入内容",
-                        "content": current_text.strip(),
-                    }
-                },
-            }
-            filepath = export_novel(story)
-            return f"[系统] 当前内容已成功保存至 output 文件夹！路径：{filepath}"
-        else:
-            return "[系统] 当前没有可导出的内容。"
+
+        story = {
+            "title": title,
+            "outline": outline,
+            "chapters": chapters,
+        }
+
+        filepath = export_novel(story)
+        return f"[系统] 章节已成功保存至 output 文件夹！路径：{filepath}"
 
     def _on_clear_history(self):
         """点击'清空历史'"""
@@ -184,7 +173,7 @@ class NovelSystemGUI:
 
             # ---- 标题区 ----
             gr.HTML('<div class="main-title">AI 小说创作系统</div>')
-            gr.HTML('<div class="sub-title">基于 DeepSeek 的智能小说创作助手 | 创作从未如此简单</div>')
+            gr.HTML('<div class="sub-title">基于 Gemini 的智能小说创作助手 | 创作从未如此简单</div>')
 
             # ---- 主体两栏 ----
             with gr.Row(equal_height=True):
@@ -198,7 +187,7 @@ class NovelSystemGUI:
                     api_key_input = gr.Textbox(
                         label="API Key",
                         type="password",
-                        placeholder="请输入 DeepSeek API Key...",
+                        placeholder="请输入 Gemini API Key...",
                         lines=1,
                     )
 
@@ -240,12 +229,13 @@ class NovelSystemGUI:
 
                     gr.HTML('<div class="panel-header">创作区</div>')
 
-                    # 文本主展示区（可手动编辑）
+                    # 文本主展示区
                     novel_display = gr.Textbox(
-                        label="小说正文（可手动编辑）",
+                        label="小说正文",
                         lines=22,
-                        interactive=True,
-                        placeholder="AI 生成的小说内容将在此展示，也可手动输入测试内容...",                       
+                        interactive=False,
+                        placeholder="AI 生成的小说内容将在此展示...",
+                       
                     )
 
                     # 用户交互输入
@@ -295,10 +285,10 @@ class NovelSystemGUI:
                 outputs=[novel_display, status_bar],
             )
 
-            # 保存/导出（传入当前文本框内容）
+            # 保存/导出
             save_btn.click(
                 fn=self._on_save_chapter,
-                inputs=[novel_display],
+                inputs=[],
                 outputs=[status_bar],
             )
 
@@ -311,7 +301,7 @@ class NovelSystemGUI:
 
         return app
 
-    def launch(self, server_name: str = "127.0.0.1", server_port: int = 7860):
+    def launch(self, server_name: str = "0.0.0.0", server_port: int = 7860):
         """启动应用"""
         app = self.build_interface()
         app.launch(server_name=server_name, server_port=server_port)
