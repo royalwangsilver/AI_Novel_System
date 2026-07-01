@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 小说创作系统 - 启动控制台</title>
+    <style>
+        /* ===== 全局重置与基础 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+            /* 科技感渐变背景：深邃蓝 + 微光灰 */
+            background: linear-gradient(135deg, #0c1628 0%, #162544 30%, #1a2d50 60%, #232f3e 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== 背景装饰光晕 ===== */
+        body::before {
+            content: "";
+            position: absolute;
+            top: -30%;
+            left: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse, rgba(66, 133, 244, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            bottom: -20%;
+            right: -15%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(ellipse, rgba(100, 180, 255, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ===== 启动卡片 ===== */
+        .launcher-card {
+            position: relative;
+            z-index: 1;
+            width: 520px;
+            max-width: 92vw;
+            padding: 48px 40px 36px;
+            background: rgba(22, 33, 56, 0.85);
+            border: 1px solid rgba(100, 160, 255, 0.12);
+            border-radius: 20px;
+            /* 悬浮阴影 */
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            text-align: center;
+            animation: cardFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* ===== 图标 ===== */
+        .app-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: iconPulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* ===== 标题 ===== */
+        .app-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #e8edf5;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: #7a8ba8;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* ===== 技术亮点标签 ===== */
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            padding: 5px 14px;
+            font-size: 12px;
+            color: #8bb8f0;
+            background: rgba(66, 133, 244, 0.1);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== 主按钮 ===== */
+        .launch-btn {
+            display: inline-block;
+            width: 100%;
+            padding: 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #2a6cf6 0%, #4a90f9 50%, #3578f5 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            /* 平滑悬停动画 */
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px rgba(42, 108, 246, 0.35);
+        }
+
+        .launch-btn:hover {
+            transform: scale(1.04);
+            background: linear-gradient(135deg, #3578f5 0%, #5ca0ff 50%, #4a90f9 100%);
+            box-shadow: 0 6px 24px rgba(42, 108, 246, 0.5);
+        }
+
+        .launch-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(42, 108, 246, 0.3);
+        }
+
+        /* ===== 健康检查提示框 ===== */
+        .health-notice {
+            margin-top: 28px;
+            padding: 14px 18px;
+            background: rgba(255, 183, 77, 0.08);
+            border: 1px solid rgba(255, 183, 77, 0.25);
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .health-notice-icon {
+            display: inline-block;
+            font-size: 15px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .health-notice-text {
+            font-size: 13px;
+            color: #ffb74d;
+            line-height: 1.6;
+            vertical-align: middle;
+        }
+
+        .health-notice-text strong {
+            color: #ffd180;
+        }
+
+        /* ===== 底部版权 ===== */
+        .footer {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #4a5a70;
+        }
+
+        /* ===== 响应式适配 ===== */
+        @media (max-width: 560px) {
+            .launcher-card {
+                padding: 36px 24px 28px;
+            }
+            .app-title {
+                font-size: 20px;
+            }
+            .app-icon {
+                font-size: 44px;
+            }
+            .launch-btn {
+                font-size: 16px;
+                padding: 14px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="launcher-card">
+
+        <!-- 图标 -->
+        <div class="app-icon">✍️</div>
+
+        <!-- 系统名称 -->
+        <div class="app-title">AI 小说创作系统</div>
+        <div class="app-subtitle">基于 Gemini 大语言模型的智能小说创作助手</div>
+
+        <!-- 技术亮点标签 -->
+        <div class="tech-tags">
+            <span class="tech-tag">面向对象架构</span>
+            <span class="tech-tag">Gradio 可视化交互</span>
+            <span class="tech-tag">API 密钥无痕防御机制</span>
+            <span class="tech-tag">Dict + List 数据管理</span>
+        </div>
+
+        <!-- 一键进入按钮 -->
+        <a class="launch-btn" href="http://127.0.0.1:7860" target="_blank" rel="noopener noreferrer">
+            一键进入系统
+        </a>
+
+        <!-- 健康检查提示框 -->
+        <div class="health-notice">
+            <span class="health-notice-icon">⚠️</span>
+            <span class="health-notice-text">
+                启动前请确保后台 <strong>python main.py</strong> 正在运行，否则系统界面将无法加载。
+            </span>
+        </div>
+
+        <!-- 底部 -->
+        <div class="footer">AI Novel System v1.0 &nbsp;·&nbsp; Python + Gradio + Gemini</div>
+
+    </div>
+
+</body>
+</html>
